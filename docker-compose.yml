@@ -27,6 +27,9 @@ services:
       GEO_API_KEY: dev-api-key-change-in-production
       DEBUG: "True"
       ALLOWED_HOSTS: "*"
+      NESTJS_BACKEND_URL: "http://host.docker.internal:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8001:8000"
     depends_on:

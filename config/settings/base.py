@@ -99,6 +99,16 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
 }
 
+# ---------- Authentication Backends ----------
+# Apenas usuários com role ADMIN no NestJS conseguem acessar o Django Admin.
+# O ModelBackend foi removido intencionalmente para impedir login via senha Django local.
+AUTHENTICATION_BACKENDS = [
+    "core.backends.NestJsAuthBackend",
+]
+
+# URL base do backend NestJS (usado pelo NestJsAuthBackend)
+NESTJS_BACKEND_URL = env("NESTJS_BACKEND_URL", default="http://localhost:3000")
+
 # ---------- API Key ----------
 GEO_API_KEY = env("GEO_API_KEY", default="dev-api-key-change-in-production")
 
