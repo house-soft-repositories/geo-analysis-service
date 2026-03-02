@@ -1,12 +1,19 @@
 from django.contrib.gis import admin
-from .models import CamadaEstadual, CamadaAmbiental, CamadaGenerica
+from .models import CamadaEstadual, CamadaMunicipal, CamadaAmbiental, CamadaGenerica
 
 
 @admin.register(CamadaEstadual)
 class CamadaEstadualAdmin(admin.GISModelAdmin):
-    list_display = ("nome", "uf", "tipo", "fonte", "criado_em")
-    list_filter = ("uf", "tipo")
+    list_display = ("nome", "uf", "fonte", "criado_em")
+    list_filter = ("uf",)
     search_fields = ("nome", "uf")
+
+
+@admin.register(CamadaMunicipal)
+class CamadaMunicipalAdmin(admin.GISModelAdmin):
+    list_display = ("nome", "uf", "codigo_ibge", "fonte", "criado_em")
+    list_filter = ("uf",)
+    search_fields = ("nome", "codigo_ibge")
 
 
 @admin.register(CamadaAmbiental)

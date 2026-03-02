@@ -3,9 +3,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import CamadaEstadual, CamadaAmbiental, CamadaGenerica
+from .models import CamadaEstadual, CamadaMunicipal, CamadaAmbiental, CamadaGenerica
 from .serializers import (
     CamadaEstadualSerializer,
+    CamadaMunicipalSerializer,
     CamadaAmbientalSerializer,
     CamadaGenericaSerializer,
     ImportarCamadaSerializer,
@@ -23,6 +24,7 @@ class ListarCamadasView(APIView):
     def get(self, request):
         return Response({
             "estaduais": CamadaEstadualSerializer(CamadaEstadual.objects.all(), many=True).data,
+            "municipais": CamadaMunicipalSerializer(CamadaMunicipal.objects.all(), many=True).data,
             "ambientais": CamadaAmbientalSerializer(CamadaAmbiental.objects.all(), many=True).data,
             "genericas": CamadaGenericaSerializer(CamadaGenerica.objects.all(), many=True).data,
         })
@@ -53,14 +55,34 @@ class ImportarCamadaView(APIView):
 
         if tipo == "ESTADUAL":
             geom = extract_multipolygon(file_content, filename)
-            camada = CamadaEstadual.objects.create(
-                nome=data["nome"],
+            camada, created = CamadaEstadual.objects.update_or_create(
                 uf=data["uf"].upper(),
-                tipo=data.get("tipo_camada", "ESTADO"),
-                geometry=geom,
-                fonte=data.get("fonte", ""),
+                defaults={
+                    "nome": data["nome"],
+                    "geometry": geom,
+                    "fonte": data.get("fonte", ""),
+                },
             )
-            return Response(CamadaEstadualSerializer(camada).data, status=status.HTTP_201_CREATED)
+            return Response(
+                CamadaEstadualSerializer(camada).data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
+
+        elif tipo == "MUNICIPAL":
+            geom = extract_multipolygon(file_content, filename)
+            camada, created = CamadaMunicipal.objects.update_or_create(
+                codigo_ibge=data["codigo_ibge"],
+                defaults={
+                    "nome": data["nome"],
+                    "uf": data["uf"].upper(),
+                    "geometry": geom,
+                    "fonte": data.get("fonte", ""),
+                },
+            )
+            return Response(
+                CamadaMunicipalSerializer(camada).data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
 
         elif tipo == "AMBIENTAL":
             geom = extract_multipolygon(file_content, filename)
@@ -102,6 +124,7 @@ class RemoverCamadaView(APIView):
 
     TIPO_MAP = {
         "estadual": CamadaEstadual,
+        "municipal": CamadaMunicipal,
         "ambiental": CamadaAmbiental,
         "generica": CamadaGenerica,
     }

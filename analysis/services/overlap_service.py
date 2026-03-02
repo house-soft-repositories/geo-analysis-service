@@ -12,7 +12,7 @@ from typing import List, Optional
 from django.contrib.gis.geos import GEOSGeometry
 
 from analysis.checks.base_check import CheckResult
-from analysis.checks.state_boundary import LimiteEstadualCheck
+from analysis.checks.state_boundary import LimiteEstadualCheck, LimiteMunicipalCheck
 from analysis.checks.property_containment import ContencaoImovelCheck
 from analysis.checks.legal_reserve import ReservaLegalCheck
 from analysis.checks.generic_layer import CamadaGenericaCheck, TipoAmbientalCheck
@@ -20,6 +20,7 @@ from analysis.checks.generic_layer import CamadaGenericaCheck, TipoAmbientalChec
 
 # Identificadores dos checks disponíveis
 CHECK_LIMITE_ESTADUAL = "limite_estadual"
+CHECK_LIMITE_MUNICIPAL = "limite_municipal"
 CHECK_CONTENCAO_IMOVEL = "contencao_imovel"
 CHECK_RESERVA_LEGAL = "reserva_legal"
 CHECK_CAMADA_GENERICA = "camada_generica"
@@ -27,6 +28,7 @@ CHECK_TIPO_AMBIENTAL = "tipo_ambiental"
 
 ALL_CHECKS = [
     CHECK_LIMITE_ESTADUAL,
+    CHECK_LIMITE_MUNICIPAL,
     CHECK_CONTENCAO_IMOVEL,
     CHECK_RESERVA_LEGAL,
     CHECK_CAMADA_GENERICA,
@@ -41,6 +43,7 @@ class AnaliseParams:
     geometria_area: GEOSGeometry
     geometria_imovel: Optional[GEOSGeometry] = None
     uf: str = ""
+    codigo_ibge: str = ""
     checks: List[str] = field(default_factory=lambda: list(ALL_CHECKS))
     slugs_camadas: List[str] = field(default_factory=list)
     tipos_ambientais: List[str] = field(default_factory=list)
@@ -67,11 +70,12 @@ def executar_analise(params: AnaliseParams) -> OverlapResult:
     Executa todos os checks selecionados e retorna OverlapResult.
 
     Ordem de execução:
-    1. Limite estadual/municipal
-    2. Contenção no imóvel
-    3. Reserva Legal
-    4. Camadas genéricas (uma por slug)
-    5. Tipos ambientais (um por tipo)
+    1. Limite estadual
+    2. Limite municipal
+    3. Contenção no imóvel
+    4. Reserva Legal
+    5. Camadas genéricas (uma por slug)
+    6. Tipos ambientais (um por tipo)
     """
     resultados: List[CheckResult] = []
     checks_solicitados = set(params.checks)
@@ -81,24 +85,29 @@ def executar_analise(params: AnaliseParams) -> OverlapResult:
         check = LimiteEstadualCheck()
         resultados.append(check.run(params.geometria_area, uf=params.uf))
 
-    # 2. Contenção no imóvel
+    # 2. Limite municipal
+    if CHECK_LIMITE_MUNICIPAL in checks_solicitados and params.codigo_ibge:
+        check = LimiteMunicipalCheck()
+        resultados.append(check.run(params.geometria_area, codigo_ibge=params.codigo_ibge, uf=params.uf))
+
+    # 3. Conteção no imóvel
     if CHECK_CONTENCAO_IMOVEL in checks_solicitados:
         if params.geometria_imovel is not None:
             check = ContencaoImovelCheck()
             resultados.append(check.run(params.geometria_area, geometria_imovel=params.geometria_imovel))
 
-    # 3. Reserva Legal
+    # 4. Reserva Legal
     if CHECK_RESERVA_LEGAL in checks_solicitados:
         check = ReservaLegalCheck()
         resultados.append(check.run(params.geometria_area, uf=params.uf))
 
-    # 4. Camadas genéricas — uma execução por slug
+    # 5. Camadas genéricas — uma execução por slug
     if CHECK_CAMADA_GENERICA in checks_solicitados:
         for slug in params.slugs_camadas:
             check = CamadaGenericaCheck()
             resultados.append(check.run(params.geometria_area, slug=slug))
 
-    # 5. Tipos ambientais (APP, UNIDADE_CONSERVACAO, etc.)
+    # 6. Tipos ambientais (APP, UNIDADE_CONSERVACAO, etc.)
     if CHECK_TIPO_AMBIENTAL in checks_solicitados:
         for tipo in params.tipos_ambientais:
             check = TipoAmbientalCheck()

@@ -20,7 +20,13 @@ class AnaliseOverlapSerializer(serializers.Serializer):
         max_length=2,
         required=False,
         default="",
-        help_text="Sigla do estado para verificação de limite (ex: SC).",
+        help_text="Sigla do estado para verificação de limite estadual (ex: SC).",
+    )
+    codigo_ibge = serializers.CharField(
+        max_length=7,
+        required=False,
+        default="",
+        help_text="Código IBGE do município para verificação de limite municipal (ex: 4205407).",
     )
     checks = serializers.MultipleChoiceField(
         choices=ALL_CHECKS,

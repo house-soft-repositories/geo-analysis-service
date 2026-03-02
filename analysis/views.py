@@ -66,6 +66,7 @@ class AnaliseOverlapView(APIView):
             geometria_area=geometria_area,
             geometria_imovel=geometria_imovel,
             uf=data.get("uf", ""),
+            codigo_ibge=data.get("codigo_ibge", ""),
             checks=data.get("checks", []),
             slugs_camadas=data.get("slugs_camadas", []),
             tipos_ambientais=data.get("tipos_ambientais", []),
