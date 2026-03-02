@@ -12,17 +12,12 @@ class TipoCamadaAmbiental(models.TextChoices):
 
 class CamadaEstadual(models.Model):
     """
-    Armazena os limites geográficos de estados e municípios brasileiros.
-    Utilizada para verificar se uma geometria está fora do limite do estado/município.
+    Armazena os limites geográficos de estados brasileiros.
+    Utilizada para verificar se uma geometria está dentro do limite estadual.
     """
 
-    nome = models.CharField(max_length=255, help_text="Nome do estado ou município.")
-    uf = models.CharField(max_length=2, db_index=True, help_text="Sigla do estado (ex: SC).")
-    tipo = models.CharField(
-        max_length=20,
-        choices=[("ESTADO", "Estado"), ("MUNICIPIO", "Município")],
-        default="ESTADO",
-    )
+    nome = models.CharField(max_length=255, help_text="Nome do estado.")
+    uf = models.CharField(max_length=2, db_index=True, unique=True, help_text="Sigla do estado (ex: SC).")
     geometry = gis_models.MultiPolygonField(srid=4326, help_text="Geometria do limite (SRID 4326).")
     fonte = models.CharField(max_length=255, blank=True, default="", help_text="Fonte do dado (ex: IBGE 2023).")
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -30,13 +25,44 @@ class CamadaEstadual(models.Model):
     class Meta:
         verbose_name = "Camada Estadual"
         verbose_name_plural = "Camadas Estaduais"
-        ordering = ["uf", "nome"]
+        ordering = ["uf"]
         indexes = [
             models.Index(fields=["uf"]),
         ]
 
     def __str__(self):
         return f"{self.nome} ({self.uf})"
+
+
+class CamadaMunicipal(models.Model):
+    """
+    Armazena os limites geográficos de municípios brasileiros.
+    Utilizada para verificar se uma geometria está dentro do limite municipal.
+    """
+
+    nome = models.CharField(max_length=255, help_text="Nome do município.")
+    uf = models.CharField(max_length=2, db_index=True, help_text="Sigla do estado (ex: SC).")
+    codigo_ibge = models.CharField(
+        max_length=7,
+        db_index=True,
+        unique=True,
+        help_text="Código IBGE do município com 7 dígitos (ex: 4205407).",
+    )
+    geometry = gis_models.MultiPolygonField(srid=4326, help_text="Geometria do limite (SRID 4326).")
+    fonte = models.CharField(max_length=255, blank=True, default="", help_text="Fonte do dado (ex: IBGE 2023).")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Camada Municipal"
+        verbose_name_plural = "Camadas Municipais"
+        ordering = ["uf", "nome"]
+        indexes = [
+            models.Index(fields=["uf"]),
+            models.Index(fields=["codigo_ibge"]),
+        ]
+
+    def __str__(self):
+        return f"{self.nome}/{self.uf} ({self.codigo_ibge})"
 
 
 class CamadaAmbiental(models.Model):
