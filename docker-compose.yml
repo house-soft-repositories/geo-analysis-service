@@ -1,0 +1,42 @@
+services:
+  geo_db:
+    image: postgis/postgis:16-3.4
+    container_name: geo_analysis_db
+    environment:
+      POSTGRES_DB: geo_analysis
+      POSTGRES_USER: geo_user
+      POSTGRES_PASSWORD: geo_password
+    volumes:
+      - geo_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geo_user -d geo_analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  geo_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: geo_analysis_service
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DATABASE_URL: postgis://geo_user:geo_password@geo_db:5432/geo_analysis
+      GEO_API_KEY: dev-api-key-change-in-production
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+    ports:
+      - "8001:8000"
+    depends_on:
+      geo_db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  geo_db_data:

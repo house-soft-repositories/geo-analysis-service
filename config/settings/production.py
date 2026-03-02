@@ -1,0 +1,12 @@
+from .base import *  # noqa
+
+DEBUG = False
+
+CORS_ALLOW_ALL_ORIGINS = False
+
+# Security hardening for production
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
